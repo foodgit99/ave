@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AVE · Owner Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--line:#262d37;--ink:#e6edf3;--mute:#8b98a8;--blue:#2f81f7;--green:#3fb950;--amber:#d29922;--red:#f85149;--mono:'IBM Plex Mono',monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 'IBM Plex Sans',system-ui,sans-serif}
+  header{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:5}
+  header h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.02em}
+  header h1 span{color:var(--mute);font-weight:400;margin-left:8px}
+  main{max-width:1240px;margin:0 auto;padding:24px 28px 80px}
+  .grid{display:grid;gap:16px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  .cols{grid-template-columns:1.2fr .8fr}
+  @media(max-width:900px){.cols{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .card h2{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:0 0 12px;font-weight:600}
+  .kpi .v{font:500 26px/1.1 var(--mono)}
+  .kpi .l{color:var(--mute);font-size:12px;margin-top:6px}
+  .kpi.good .v{color:var(--green)} .kpi.warn .v{color:var(--amber)} .kpi.bad .v{color:var(--red)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--mute);font-weight:500;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+  td{padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .num{font-family:var(--mono);text-align:right;white-space:nowrap}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font:500 11px var(--mono);background:#21262d;color:var(--ink)}
+  .tag.discover,.tag.evaluate{color:#a5b4fc}.tag.validate{color:var(--amber)}.tag.build{color:#79c0ff}.tag.distribute,.tag.measure,.tag.decide{color:var(--green)}.tag.scale{color:#56d364}.tag.paused{color:var(--mute)}.tag.killed{color:var(--red)}
+  button{font:inherit;border:1px solid var(--line);background:#21262d;color:var(--ink);padding:6px 12px;border-radius:7px;cursor:pointer}
+  button:hover{border-color:#3d4650}
+  button.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+  button.ok{border-color:var(--green);color:var(--green)} button.no{border-color:var(--red);color:var(--red)}
+  button.danger{background:var(--red);border-color:var(--red);color:#fff}
+  .muted{color:var(--mute)} .small{font-size:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .banner{background:#3d1d1d;border:1px solid var(--red);color:#ffb3ad;padding:10px 14px;border-radius:8px;margin-bottom:16px;display:none}
+  .banner.info{background:#1d2a3d;border-color:var(--blue);color:#b6d4ff}
+  .banner.amber{background:#3d2f12;border-color:var(--amber);color:#ffd98a}
+  textarea{font:inherit;background:#0d1117;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:7px;width:100%;min-height:70px}
+  .pill{display:inline-block;padding:2px 8px;border-radius:999px;font:500 11px var(--mono);background:#21262d;color:var(--mute);margin:2px 4px 2px 0}
+  #auth{max-width:420px;margin:80px auto}
+  input,select{font:inherit;background:#0d1117;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:7px;width:100%}
+  label{display:block;font-size:12px;color:var(--mute);margin:12px 0 4px}
+  .empty{color:var(--mute);padding:18px 0;text-align:center}
+  details summary{cursor:pointer;color:var(--mute);font-size:12px}
+  pre{font:12px var(--mono);white-space:pre-wrap;color:var(--mute);margin:6px 0 0}
+  .md{white-space:pre-wrap;font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Autonomous Venture Engine <span>Owner Command Center · your team, your accounts, your money</span></h1>
+  <div class="row" id="hdr"></div>
+</header>
+<main>
+  <section id="auth" class="card">
+    <h2>Connect</h2>
+    <label>Supabase project URL</label><input id="url" placeholder="https://xxxx.supabase.co">
+    <label>Supabase anon key</label><input id="anon" placeholder="eyJ...">
+    <label>Your email (magic link)</label><input id="email" type="email" placeholder="you@example.com">
+    <div class="row" style="margin-top:14px"><button class="primary" id="login">Send sign-in link</button><span class="small muted" id="authmsg"></span></div>
+    <p class="small muted" style="margin-top:14px">The anon key is public by design; Row-Level Security means you only ever see your own ventures. Settings are stored in this browser only.</p>
+  </section>
+
+  <section id="app" style="display:none">
+    <div class="banner" id="killbanner">🛑 Kill switch is ON — every new spend request is being rejected. Agents can still research and report.</div>
+    <div class="banner amber" id="edgebanner">Discovery is paused until you describe your edge below — who already listens to you, what you know, which channels and accounts are yours. AVE only builds ventures that use it.</div>
+    <div class="banner info" id="dogfoodbanner">Dogfood mode is on: every venture is capped at <b id="dfcap"></b> with stage caps, digital products first. The goal of a dogfood run is a closed loop and a published ledger — a clean kill counts. Turn it off in Policy once you have a ledger you are happy with.</div>
+    <div class="grid kpis" id="kpis"></div>
+    <div class="grid cols" style="margin-top:16px">
+      <div class="grid" style="gap:16px">
+        <div class="card"><h2>Needs you · approvals</h2><div id="approvals"></div></div>
+        <div class="card" id="edgecard"><h2>Your edge · what only you bring</h2><div id="edge"></div></div>
+        <div class="card"><h2>Ventures</h2><div id="ventures"></div></div>
+        <div class="card"><h2>Venture assets · all in your accounts</h2><div id="assets"></div></div>
+        <div class="card"><h2>Decision log</h2><div id="decisions"></div></div>
+      </div>
+      <div class="grid" style="gap:16px">
+        <div class="card"><h2>Latest report</h2><div id="report" class="md"></div></div>
+        <div class="card"><h2>Agent activity</h2><div id="runs"></div></div>
+        <div class="card"><h2>Ledger</h2><div id="ledger"></div></div>
+        <div class="card"><h2>Policy · guardrails</h2><div id="policy"></div></div>
+        <div class="card"><h2>Public ledger · proof, kills included</h2><div id="snapshots"></div></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+const cfg = { url: localStorage.ave_url, anon: localStorage.ave_anon };
+let sb, me, portfolio;
+
+const money = (c, cur='USD') => (c==null?'—':new Intl.NumberFormat('en', {style:'currency', currency:cur, maximumFractionDigits:2}).format(c/100));
+const ago = t => { const m=(Date.now()-new Date(t))/60000; return m<60?`${m|0}m`:m<1440?`${m/60|0}h`:`${m/1440|0}d`; };
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+if (cfg.url && cfg.anon) { $('#url').value = cfg.url; $('#anon').value = cfg.anon; boot(); }
+
+$('#login').onclick = async () => {
+  localStorage.ave_url = $('#url').value.trim(); localStorage.ave_anon = $('#anon').value.trim();
+  cfg.url = localStorage.ave_url; cfg.anon = localStorage.ave_anon;
+  sb = supabase.createClient(cfg.url, cfg.anon);
+  const { error } = await sb.auth.signInWithOtp({ email: $('#email').value.trim(), options: { emailRedirectTo: location.href.split('#')[0] } });
+  $('#authmsg').textContent = error ? error.message : 'Check your inbox and open the link on this device.';
+};
+
+async function boot() {
+  sb = supabase.createClient(cfg.url, cfg.anon);
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { sb.auth.onAuthStateChange((_, s) => s && boot()); return; }
+  me = session.user;
+  // first login: create owner + default policy
+  const { data: owner } = await sb.from('owners').select('id').eq('id', me.id).maybeSingle();
+  if (!owner) await sb.rpc('fn_bootstrap_owner', { p_name: me.email.split('@')[0], p_email: me.email });
+  $('#auth').style.display = 'none'; $('#app').style.display = 'block';
+  $('#hdr').innerHTML = `<span class="small muted">${esc(me.email)}</span><button id="refresh">Refresh</button><button id="addcap">+ Capital</button><button id="kill" class="danger">Kill switch</button><button id="out">Sign out</button>`;
+  $('#refresh').onclick = load; $('#out').onclick = async () => { await sb.auth.signOut(); location.reload(); };
+  $('#addcap').onclick = addCapital; $('#kill').onclick = toggleKill;
+  await load();
+  sb.channel('ave').on('postgres_changes', { event: '*', schema: 'public' }, () => load()).subscribe();
+}
+
+async function load() {
+  const [p, v, a, d, l, r, rep, pol] = await Promise.all([
+    sb.from('v_portfolio').select('*').eq('owner_id', me.id).maybeSingle(),
+    sb.from('v_ventures').select('*').order('updated_at', { ascending: false }),
+    sb.from('approvals').select('*').eq('status', 'pending').order('created_at'),
+    sb.from('decisions').select('*').order('created_at', { ascending: false }).limit(12),
+    sb.from('ledger').select('*').order('occurred_at', { ascending: false }).limit(15),
+    sb.from('agent_runs').select('*').order('started_at', { ascending: false }).limit(10),
+    sb.from('reports').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    sb.from('policies').select('*').eq('owner_id', me.id).maybeSingle(),
+  ]);
+  const [edge, assets, coi, snaps] = await Promise.all([
+    sb.from('owner_edge').select('*').eq('owner_id', me.id).maybeSingle(),
+    sb.from('venture_assets').select('*').order('created_at', { ascending: false }).limit(40),
+    sb.from('v_cost_of_intelligence').select('*'),
+    sb.from('public_ledger_snapshots').select('id,slug,title,published,created_at').order('created_at', { ascending: false }).limit(10),
+  ]);
+  const COI = Object.fromEntries((coi.data||[]).map(x => [x.venture_id, x]));
+  const totalCOI = (coi.data||[]).reduce((n,x)=>n+(+x.intelligence_cost_cents||0),0);
+  portfolio = p.data || {};
+  const cur = portfolio.currency || 'USD';
+  $('#killbanner').style.display = portfolio.kill_switch ? 'block' : 'none';
+  $('#kill').textContent = portfolio.kill_switch ? 'Lift kill switch' : 'Kill switch';
+  const net = portfolio.net_cents || 0;
+  $('#kpis').innerHTML = [
+    ['Available capital', money(portfolio.available_cents, cur), ''],
+    ['Reserved (approved, unspent)', money(portfolio.reserved_cents, cur), ''],
+    ['Spent to date', money(portfolio.expense_cents, cur), ''],
+    ['Intelligence cost (agent runs)', money(totalCOI, cur), ''],
+    ['Verified revenue (in your accounts)', money(portfolio.verified_revenue_cents, cur), 'good'],
+    ['Net (cash + intelligence)', money(net - totalCOI, cur), (net - totalCOI) >= 0 ? 'good' : 'bad'],
+    ['Active ventures', portfolio.active_ventures ?? 0, ''],
+    ['Pending approvals', portfolio.pending_approvals ?? 0, (portfolio.pending_approvals||0) > 0 ? 'warn' : ''],
+  ].map(([l, v, c]) => `<div class="card kpi ${c}"><div class="v">${v}</div><div class="l">${l}</div></div>`).join('');
+
+  $('#approvals').innerHTML = (a.data||[]).length ? `<table>${(a.data).map(x => `<tr>
+      <td><div>${esc(x.title)}</div><div class="small muted">${esc(x.requested_by)} · ${ago(x.created_at)} ago · ${esc(x.payload?.reason||'')}</div>
+      ${x.payload && Object.keys(x.payload).length ? `<details><summary>details</summary><pre>${esc(JSON.stringify(x.payload,null,2))}</pre></details>`:''}</td>
+      <td class="num">${x.payload?.amount_cents ? money(x.payload.amount_cents, cur) : esc(x.type)}</td>
+      <td class="num"><button class="ok" onclick="decide('${x.id}','approved')">Approve</button> <button class="no" onclick="decide('${x.id}','rejected')">Reject</button></td></tr>`).join('')}</table>`
+    : `<div class="empty">Nothing waiting on you.</div>`;
+
+  $('#ventures').innerHTML = (v.data||[]).length ? `<table><tr><th>Venture</th><th>Stage</th><th class="num">Budget</th><th class="num">Spent</th><th class="num">Revenue</th><th></th></tr>${(v.data).map(x => `<tr>
+      <td><div>${esc(x.name)}</div><div class="small muted">${esc(x.thesis||'')}</div></td>
+      <td><span class="tag ${x.stage}">${x.stage}</span>${x.dogfood?' <span class="tag" style="color:var(--amber)">dogfood</span>':''}<div class="small muted">${esc(x.solution_shape||'')}${x.edge_fit_score!=null?` · edge fit ${Math.round(x.edge_fit_score*100)}%`:''}${x.running_experiments?` · ${x.running_experiments} exp. running`:''}</div></td>
+      <td class="num">${money(x.budget_cents,cur)}</td><td class="num">${money(x.spent_cents,cur)}<div class="small muted">+${money(x.reserved_cents,cur)} res. · ${money(COI[x.id]?.intelligence_cost_cents||0,cur)} intel.</div></td>
+      <td class="num">${money(x.revenue_cents,cur)}</td>
+      <td class="num">${['paused','killed'].includes(x.stage)?'':`<button onclick="pause('${x.id}')">Pause</button>`}</td></tr>`).join('')}</table>`
+    : `<div class="empty">No ventures yet. The Orchestrator creates them as opportunities pass evaluation.</div>`;
+
+  $('#decisions').innerHTML = (d.data||[]).length ? `<table>${(d.data).map(x => `<tr>
+      <td class="small muted" style="white-space:nowrap">${ago(x.created_at)} ago<br>${esc(x.agent)}</td>
+      <td><div>${esc(x.decision)}</div><div class="small muted">${esc(x.rationale)}</div></td></tr>`).join('')}</table>` : `<div class="empty">No decisions logged.</div>`;
+
+  $('#ledger').innerHTML = (l.data||[]).length ? `<table>${(l.data).map(x => `<tr>
+      <td><span class="tag">${x.kind}</span></td><td>${esc(x.description)}${x.kind==='revenue'&&!x.verified?' <span class="small muted">(unverified)</span>':''}</td>
+      <td class="num" style="color:${['revenue','capital_in','refund'].includes(x.kind)?'var(--green)':'var(--ink)'}">${['revenue','capital_in','refund'].includes(x.kind)?'+':'−'}${money(x.amount_cents,cur)}</td></tr>`).join('')}</table>` : `<div class="empty">Empty ledger. Add capital to begin.</div>`;
+
+  $('#runs').innerHTML = (r.data||[]).length ? `<table>${(r.data).map(x => `<tr>
+      <td class="small muted" style="white-space:nowrap">${ago(x.started_at)} ago</td>
+      <td><div><b>${esc(x.agent)}</b> · ${esc(x.task)}</div><div class="small muted">${esc(x.summary||'')}</div></td>
+      <td><span class="tag">${x.status}</span>${x.thread_url?` <a class="small" href="${esc(x.thread_url)}" target="_blank" rel="noopener noreferrer">open</a>`:''}</td></tr>`).join('')}</table>` : `<div class="empty">No agent runs recorded.</div>`;
+
+  $('#report').textContent = rep.data ? `${rep.data.period}\n\n${rep.data.body_md}` : 'No report yet.';
+
+  const P = pol.data || {};
+  $('#policy').innerHTML = `<table>
+    <tr><td>Agent auto-approve limit</td><td class="num">${money(P.auto_approve_limit_cents,cur)}</td></tr>
+    <tr><td>Daily agent spend limit</td><td class="num">${money(P.daily_spend_limit_cents,cur)}</td></tr>
+    <tr><td>Default venture cap</td><td class="num">${money(P.venture_budget_cap_cents,cur)}</td></tr>
+    <tr><td>Max active ventures</td><td class="num">${P.max_active_ventures??'—'}</td></tr>
+    <tr><td>Allowed spend</td><td class="small">${(P.allowed_categories||[]).join(', ')}</td></tr>
+    <tr><td>Owner must approve</td><td class="small">${(P.require_owner_for||[]).join(', ')}</td></tr>
+    <tr><td>Allowed venture shapes (wedge)</td><td class="small">${(P.allowed_solution_shapes||[]).join(', ')}</td></tr>
+    <tr><td>Min edge fit</td><td class="num">${P.min_edge_fit_score!=null?Math.round(P.min_edge_fit_score*100)+'%':'—'}</td></tr>
+    <tr><td>Dogfood mode</td><td class="small">${P.dogfood_mode?`on · cap ${money(P.dogfood_venture_cap_cents,cur)} · stages ${Object.entries(P.dogfood_stage_caps||{}).map(([k,v])=>k+' '+money(v,cur)).join(' / ')}`:'off'}</td></tr>
+    <tr><td>Public ledger</td><td class="small">${P.public_ledger?'enabled — you can publish snapshots':'disabled'}</td></tr>
+  </table><div class="row" style="margin-top:10px"><button onclick="editPolicy()">Edit limits</button><button onclick="toggleFlag('dogfood_mode',${!!P.dogfood_mode})">${P.dogfood_mode?'Turn dogfood off':'Turn dogfood on'}</button><button onclick="toggleFlag('public_ledger',${!!P.public_ledger})">${P.public_ledger?'Disable public ledger':'Enable public ledger'}</button><button onclick="toggleSaaS(${(P.allowed_solution_shapes||[]).includes('micro_saas')})">${(P.allowed_solution_shapes||[]).includes('micro_saas')?'Disallow micro-SaaS':'Allow micro-SaaS'}</button></div>
+  <div class="small muted" style="margin-top:8px">AVE never holds your money and takes no share of venture revenue. Every asset below is in your own accounts.</div>`;
+  $('#dogfoodbanner').style.display = P.dogfood_mode ? 'block' : 'none'; $('#dfcap').textContent = money(P.dogfood_venture_cap_cents, cur);
+
+  // ---- Your edge ----
+  const E = edge.data || {};
+  const complete = !!E.completed_at && !!E.edge_statement && (E.distribution_channels||[]).length > 0;
+  $('#edgebanner').style.display = complete ? 'none' : 'block';
+  $('#edge').innerHTML = `
+    <label>I am a…</label><select id="e_type">${['operator','agency','creator','domain_expert','founder_team'].map(t=>`<option ${E.operator_type===t?'selected':''}>${t}</option>`).join('')}</select>
+    <label>My edge, in one paragraph (who already listens to me, what I know better than a general model, what I can sell and collect money for where I live)</label><textarea id="e_statement">${esc(E.edge_statement||'')}</textarea>
+    <label>Audience (who, where, how many)</label><input id="e_audience" value="${esc(E.audience||'')}">
+    <label>Domain expertise</label><input id="e_domain" value="${esc(E.domain_expertise||'')}">
+    <label>Channels I can use today (comma-separated: whatsapp_list, newsletter, meta_ads, youtube, linkedin, community…)</label><input id="e_channels" value="${esc((E.distribution_channels||[]).join(', '))}">
+    <label>Existing assets (lists, brands, products, communities)</label><input id="e_assets" value="${esc((E.existing_assets||[]).join(', '))}">
+    <label>Geography (where I can legally sell and collect)</label><input id="e_geo" value="${esc(E.geography||'')}">
+    <label>Hours per week I can give this</label><input id="e_hours" type="number" step="0.5" value="${E.hours_per_week??2}">
+    <div class="row" style="margin-top:12px"><button class="primary" onclick="saveEdge(true)">${complete?'Update edge':'Save and unlock discovery'}</button><button onclick="saveEdge(false)">Save draft</button><span class="small muted">${complete?'Complete · '+ago(E.completed_at)+' ago':'Incomplete — discovery is refused until saved'}</span></div>`;
+
+  // ---- Venture assets ----
+  const vname = Object.fromEntries((v.data||[]).map(x => [x.id, x.name]));
+  $('#assets').innerHTML = (assets.data||[]).length ? `<table><tr><th>Venture</th><th>Kind</th><th>Provider</th><th>Where</th></tr>${(assets.data).map(x => `<tr>
+      <td>${esc(vname[x.venture_id]||'')}</td><td><span class="tag">${esc(x.kind)}</span></td><td>${esc(x.provider||'')}</td>
+      <td class="small">${/^https?:/.test(x.url_or_id)?`<a href="${esc(x.url_or_id)}" target="_blank" rel="noopener noreferrer">${esc(x.url_or_id)}</a>`:esc(x.url_or_id)} <span class="pill">yours</span></td></tr>`).join('')}</table>`
+    : `<div class="empty">No assets yet. The Builder registers repos, storefronts and accounts here — all in your name — before a venture can launch.</div>`;
+
+  // ---- Public ledger snapshots ----
+  $('#snapshots').innerHTML = (snaps.data||[]).length ? `<table>${(snaps.data).map(x => `<tr>
+      <td><div>${esc(x.title)}</div><div class="small muted">${esc(x.slug)} · ${ago(x.created_at)} ago</div></td>
+      <td>${x.published?`<a class="small" href="ledger.html?s=${encodeURIComponent(x.slug)}&o=${me.id}" target="_blank" rel="noopener noreferrer">public link</a>`:'<span class="small muted">draft</span>'}</td>
+      <td class="num">${x.published?`<button onclick="publishSnap('${x.id}',false)">Unpublish</button>`:`<button class="ok" onclick="publishSnap('${x.id}',true)">Publish</button>`}</td></tr>`).join('')}</table>`
+    : `<div class="empty">No snapshots yet. The Treasurer drafts one at the end of each dogfood run; only you can publish it.</div>`;
+}
+
+async function decide(id, status) {
+  const note = status === 'rejected' ? prompt('Why? (optional, the agents learn from this)') : null;
+  const { error } = await sb.from('approvals').update({ status, decision_note: note }).eq('id', id);
+  if (error) alert(error.message); else load();
+}
+async function pause(id) {
+  if (!confirm('Pause this venture? Agents stop spending on it until you resume.')) return;
+  const { error } = await sb.from('ventures').update({ stage: 'paused' }).eq('id', id);
+  if (error) alert(error.message); else load();
+}
+async function addCapital() {
+  const amt = parseFloat(prompt('Allocate how much capital? (e.g. 500)') || '0');
+  if (!(amt > 0)) return;
+  const { error } = await sb.from('ledger').insert({ owner_id: me.id, kind: 'capital_in', amount_cents: Math.round(amt*100), description: 'Owner capital allocation' });
+  if (error) alert(error.message); else load();
+}
+async function toggleKill() {
+  const on = !portfolio.kill_switch;
+  if (on && !confirm('Turn ON the kill switch? All new spend will be rejected immediately.')) return;
+  const { error } = await sb.from('owners').update({ kill_switch: on }).eq('id', me.id);
+  if (error) alert(error.message); else load();
+}
+async function toggleFlag(field, current) {
+  if (field === 'public_ledger' && !current && !confirm('Enable publishing? Snapshots you publish become readable by anyone with the link. Actuals only, kills included.')) return;
+  const { error } = await sb.from('policies').update({ [field]: !current }).eq('owner_id', me.id);
+  if (error) alert(error.message); else load();
+}
+async function toggleSaaS(current) {
+  const { data: P } = await sb.from('policies').select('allowed_solution_shapes').eq('owner_id', me.id).single();
+  const shapes = new Set(P.allowed_solution_shapes || []);
+  if (current) shapes.delete('micro_saas'); else { if (!confirm('Allow micro-SaaS? It needs support, uptime and churn work. The council wedge is digital products first.')) return; shapes.add('micro_saas'); }
+  const { error } = await sb.from('policies').update({ allowed_solution_shapes: [...shapes] }).eq('owner_id', me.id);
+  if (error) alert(error.message); else load();
+}
+async function saveEdge(complete) {
+  const split = s => s.split(',').map(x => x.trim()).filter(Boolean);
+  const row = { owner_id: me.id, operator_type: $('#e_type').value, edge_statement: $('#e_statement').value.trim(),
+    audience: $('#e_audience').value.trim(), domain_expertise: $('#e_domain').value.trim(),
+    distribution_channels: split($('#e_channels').value), existing_assets: split($('#e_assets').value),
+    geography: $('#e_geo').value.trim(), hours_per_week: +$('#e_hours').value || 2, updated_at: new Date().toISOString(),
+    completed_at: complete ? new Date().toISOString() : null };
+  if (complete && (!row.edge_statement || !row.distribution_channels.length)) return alert('Write your edge statement and at least one channel before unlocking discovery.');
+  const { error } = await sb.from('owner_edge').upsert(row, { onConflict: 'owner_id' });
+  if (error) alert(error.message); else load();
+}
+async function publishSnap(id, on) {
+  const { error } = await sb.from('public_ledger_snapshots').update({ published: on }).eq('id', id);
+  if (error) alert(error.message); else load();
+}
+async function editPolicy() {
+  const a = prompt('Agent auto-approve limit per spend (e.g. 25)'); if (a === null) return;
+  const d = prompt('Daily agent spend limit (e.g. 100)'); if (d === null) return;
+  const v = prompt('Default venture cap (e.g. 500)'); if (v === null) return;
+  const n = prompt('Max active ventures (e.g. 2)'); if (n === null) return;
+  const { error } = await sb.from('policies').update({
+    auto_approve_limit_cents: Math.round(+a*100), daily_spend_limit_cents: Math.round(+d*100),
+    venture_budget_cap_cents: Math.round(+v*100), max_active_ventures: +n }).eq('owner_id', me.id);
+  if (error) alert(error.message); else load();
+}
+</script>
+</body>
+</html>

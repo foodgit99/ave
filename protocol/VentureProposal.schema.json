@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/VentureProposal.schema.json",
+  "title": "VentureProposal",
+  "description": "Output of the Strategist. Turns a packet into a decision-grade proposal with a scorecard.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "opportunity_id",
+    "value_proposition",
+    "promise",
+    "call_to_action",
+    "business_model",
+    "price_point_usd",
+    "unit_economics",
+    "scorecard",
+    "weighted_score",
+    "edge_fit_score",
+    "money_route",
+    "capital_required_cents",
+    "recommendation",
+    "rationale"
+  ],
+  "properties": {
+    "opportunity_id": {
+      "type": "string",
+      "description": ""
+    },
+    "value_proposition": {
+      "type": "string",
+      "description": ""
+    },
+    "promise": {
+      "type": "string",
+      "description": "What the customer gets"
+    },
+    "call_to_action": {
+      "type": "string",
+      "description": "What the customer must do to get it"
+    },
+    "business_model": {
+      "type": "string",
+      "enum": [
+        "subscription",
+        "one_off",
+        "usage",
+        "service_retainer",
+        "freemium_to_paid"
+      ]
+    },
+    "price_point_usd": {
+      "type": "number",
+      "description": ""
+    },
+    "unit_economics": {
+      "type": "object",
+      "required": [
+        "est_cac_usd",
+        "est_ltv_usd",
+        "gross_margin_pct"
+      ],
+      "properties": {
+        "est_cac_usd": {
+          "type": "number",
+          "description": ""
+        },
+        "est_ltv_usd": {
+          "type": "number",
+          "description": ""
+        },
+        "gross_margin_pct": {
+          "type": "number",
+          "description": ""
+        },
+        "payback_months": {
+          "type": "number",
+          "description": ""
+        }
+      }
+    },
+    "scorecard": {
+      "type": "object",
+      "description": "Each 1-5",
+      "required": [
+        "demand",
+        "accessibility",
+        "competition",
+        "revenue_potential",
+        "capital_need",
+        "feasibility",
+        "time_to_revenue",
+        "legal_risk",
+        "owner_fit"
+      ],
+      "properties": {
+        "demand": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "accessibility": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "competition": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "revenue_potential": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "capital_need": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "feasibility": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "time_to_revenue": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "legal_risk": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        },
+        "owner_fit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5
+        }
+      }
+    },
+    "weighted_score": {
+      "type": "number",
+      "description": "0-100"
+    },
+    "edge_fit_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Below policies.min_edge_fit_score \u2192 reject"
+    },
+    "money_route": {
+      "type": "string",
+      "description": "The owner's own storefront/payment provider that collects revenue; never AVE"
+    },
+    "est_intelligence_cost_cents": {
+      "type": "integer",
+      "description": "Estimated agent-run cost to reach first revenue"
+    },
+    "capital_required_cents": {
+      "type": "integer",
+      "description": "To reach first verified revenue"
+    },
+    "time_to_first_revenue_days": {
+      "type": "integer",
+      "description": ""
+    },
+    "key_risks": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "recommendation": {
+      "type": "string",
+      "enum": [
+        "validate",
+        "park",
+        "reject"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "description": ""
+    },
+    "execution_plan_90d": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Milestones, not tasks"
+    }
+  }
+}

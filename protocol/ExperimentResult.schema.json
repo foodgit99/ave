@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/ExperimentResult.schema.json",
+  "title": "ExperimentResult",
+  "description": "Validator's read-out. Numbers first, then what they mean.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "experiment_id",
+    "outcome",
+    "spent_cents",
+    "observed",
+    "recommendation",
+    "rationale",
+    "confidence"
+  ],
+  "properties": {
+    "experiment_id": {
+      "type": "string",
+      "description": ""
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "inconclusive",
+        "aborted"
+      ]
+    },
+    "spent_cents": {
+      "type": "integer",
+      "description": ""
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "description": ""
+      },
+      "description": "metric \u2192 value"
+    },
+    "qualitative": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Verbatim customer quotes, objections"
+    },
+    "surprises": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "recommendation": {
+      "type": "string",
+      "enum": [
+        "advance",
+        "iterate",
+        "pivot",
+        "kill"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "description": ""
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "0-1 confidence"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/DistributionPlan.schema.json",
+  "title": "DistributionPlan",
+  "description": "Distributor's weekly plan. Every channel has a budget and a KPI or it is not on the list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "venture_id",
+    "audience_segments",
+    "positioning",
+    "owner_channels_first",
+    "channels",
+    "funnel",
+    "total_budget_cents",
+    "cta_destination"
+  ],
+  "properties": {
+    "venture_id": {
+      "type": "string",
+      "description": ""
+    },
+    "audience_segments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "where",
+          "message"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": ""
+          },
+          "where": {
+            "type": "string",
+            "description": "Channel/community/platform"
+          },
+          "message": {
+            "type": "string",
+            "description": "Hook in their language"
+          },
+          "size_estimate": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "description": ""
+    },
+    "positioning": {
+      "type": "string",
+      "description": ""
+    },
+    "owner_channels_first": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "The owner's own audience/channels used before any paid reach"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "channel",
+          "mode",
+          "budget_cents",
+          "kpi",
+          "account"
+        ],
+        "properties": {
+          "channel": {
+            "type": "string",
+            "description": ""
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "organic",
+              "paid",
+              "outbound",
+              "partner",
+              "creator"
+            ]
+          },
+          "account": {
+            "type": "string",
+            "description": "The owner's own account/API used (e.g. owner Meta ad account via Marketing API); never AVE-owned"
+          },
+          "budget_cents": {
+            "type": "integer",
+            "description": ""
+          },
+          "kpi": {
+            "type": "string",
+            "description": ""
+          },
+          "target": {
+            "type": "number",
+            "description": ""
+          }
+        }
+      },
+      "description": ""
+    },
+    "funnel": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Step \u2192 conversion target"
+    },
+    "tests_this_week": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "total_budget_cents": {
+      "type": "integer",
+      "description": ""
+    },
+    "cta_destination": {
+      "type": "string",
+      "enum": [
+        "landing_page",
+        "whatsapp",
+        "call",
+        "checkout",
+        "calendar"
+      ]
+    }
+  }
+}

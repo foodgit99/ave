@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/ExperimentSpec.schema.json",
+  "title": "ExperimentSpec",
+  "description": "Output of the Validator before any money moves. Hypothesis, budget, threshold, stop rule.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "venture_id",
+    "hypothesis",
+    "type",
+    "design",
+    "budget_cents",
+    "duration_days",
+    "success_criteria",
+    "stop_conditions"
+  ],
+  "properties": {
+    "venture_id": {
+      "type": "string",
+      "description": ""
+    },
+    "hypothesis": {
+      "type": "string",
+      "description": "'We believe <customer> will <action> because <reason>'"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "landing_page",
+        "preorder",
+        "paid_pilot",
+        "concierge",
+        "lead_magnet",
+        "outbound_interviews",
+        "price_test",
+        "ad_message_test"
+      ]
+    },
+    "design": {
+      "type": "string",
+      "description": "Exactly what is built/shown, to whom, where"
+    },
+    "budget_cents": {
+      "type": "integer",
+      "description": ""
+    },
+    "duration_days": {
+      "type": "integer",
+      "description": ""
+    },
+    "success_criteria": {
+      "type": "object",
+      "required": [
+        "metric",
+        "threshold"
+      ],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "description": ""
+        },
+        "threshold": {
+          "type": "number",
+          "description": ""
+        },
+        "unit": {
+          "type": "string",
+          "description": ""
+        }
+      }
+    },
+    "stop_conditions": {
+      "type": "object",
+      "required": [
+        "max_spend_cents",
+        "max_days"
+      ],
+      "properties": {
+        "max_spend_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "max_days": {
+          "type": "integer",
+          "description": ""
+        },
+        "kill_if": {
+          "type": "string",
+          "description": ""
+        }
+      }
+    },
+    "what_we_learn_if_pass": {
+      "type": "string",
+      "description": ""
+    },
+    "what_we_learn_if_fail": {
+      "type": "string",
+      "description": ""
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/OwnerReport.schema.json",
+  "title": "OwnerReport",
+  "description": "Orchestrator's daily/weekly report. Plain language; money first; asks are explicit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "period",
+    "headline",
+    "portfolio",
+    "ventures",
+    "decisions_made",
+    "needs_you",
+    "recommendation",
+    "forecast_disclaimer"
+  ],
+  "properties": {
+    "period": {
+      "type": "string",
+      "description": ""
+    },
+    "headline": {
+      "type": "string",
+      "description": "One sentence: what happened and what it means"
+    },
+    "portfolio": {
+      "type": "object",
+      "required": [
+        "available_cents",
+        "spent_cents",
+        "verified_revenue_cents"
+      ],
+      "properties": {
+        "available_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "spent_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "verified_revenue_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "reserved_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "intelligence_cost_cents": {
+          "type": "integer",
+          "description": "Estimated agent-run cost this period (v_cost_of_intelligence)"
+        }
+      }
+    },
+    "ventures": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "stage",
+          "spent_cents",
+          "revenue_cents",
+          "status_line"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": ""
+          },
+          "stage": {
+            "type": "string",
+            "description": ""
+          },
+          "spent_cents": {
+            "type": "integer",
+            "description": ""
+          },
+          "revenue_cents": {
+            "type": "integer",
+            "description": ""
+          },
+          "status_line": {
+            "type": "string",
+            "description": ""
+          },
+          "next": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "description": ""
+    },
+    "discovered": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "New opportunities worth a sentence each"
+    },
+    "decisions_made": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "needs_you": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Pending approvals, each with amount and why"
+    },
+    "recommendation": {
+      "type": "string",
+      "description": ""
+    },
+    "forecast_disclaimer": {
+      "type": "string",
+      "const": "Forecasts are estimates, not guarantees. Only verified revenue is reported as revenue. AVE holds no money and takes no share of venture revenue."
+    }
+  }
+}

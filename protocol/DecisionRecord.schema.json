@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/DecisionRecord.schema.json",
+  "title": "DecisionRecord",
+  "description": "Written to `decisions` at every stage gate. Immutable.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "venture_id",
+    "agent",
+    "stage",
+    "decision",
+    "rationale",
+    "requires_owner"
+  ],
+  "properties": {
+    "venture_id": {
+      "type": "string",
+      "description": ""
+    },
+    "agent": {
+      "type": "string",
+      "description": ""
+    },
+    "stage": {
+      "type": "string",
+      "description": ""
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "advance",
+        "iterate",
+        "scale",
+        "maintain",
+        "pause",
+        "kill",
+        "reallocate",
+        "park"
+      ]
+    },
+    "rationale": {
+      "type": "string",
+      "description": "One paragraph a non-technical owner understands"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "source_url",
+          "strength"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string",
+            "description": ""
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Where it was observed; 'interview' for primary research"
+          },
+          "strength": {
+            "type": "string",
+            "enum": [
+              "weak",
+              "moderate",
+              "strong"
+            ]
+          },
+          "date": {
+            "type": "string",
+            "description": "ISO date observed"
+          }
+        }
+      },
+      "description": ""
+    },
+    "money": {
+      "type": "object",
+      "properties": {
+        "spent_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "verified_revenue_cents": {
+          "type": "integer",
+          "description": ""
+        },
+        "requested_cents": {
+          "type": "integer",
+          "description": ""
+        }
+      }
+    },
+    "requires_owner": {
+      "type": "boolean"
+    },
+    "owner_question": {
+      "type": "string",
+      "description": "If requires_owner: the exact yes/no being asked"
+    }
+  }
+}

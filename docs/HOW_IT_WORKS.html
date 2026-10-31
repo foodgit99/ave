@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How AVE works — end to end (v0.1)</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--panel2:#1c222b;--line:#2a313c;--ink:#e6edf3;--mute:#8b98a8;--dim:#5c6673;
+        --blue:#58a6ff;--green:#3fb950;--amber:#d29922;--red:#f85149;--violet:#a371f7;--cyan:#39c5cf;--mono:'IBM Plex Mono',monospace}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font:15px/1.5 'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:48px 32px 80px}
+  @media(max-width:640px){.wrap{padding:28px 18px 60px}}
+  h1{font-size:clamp(26px,3.4vw,38px);font-weight:700;letter-spacing:-.02em;line-height:1.1}
+  .sub{color:var(--mute);margin-top:10px;max-width:820px}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin:22px 0 0;font-size:12px;color:var(--mute)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+  .label{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);margin:52px 0 16px;display:flex;align-items:center;gap:14px;font-weight:600}
+  .label::after{content:"";flex:1;height:1px;background:var(--line)}
+  .mono{font-family:var(--mono)}
+
+  /* ---- layered system diagram ---- */
+  .sys{display:grid;grid-template-columns:1fr;gap:0;position:relative}
+  .layer{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 22px;position:relative}
+  .layer h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+  .layer .who{font-size:12px;color:var(--mute);margin-bottom:14px}
+  .boxes{display:grid;gap:10px}
+  .box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:13px;line-height:1.45}
+  .box b{display:block;font-weight:600;margin-bottom:3px}
+  .box .m{font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .box.hl{border-color:var(--amber)}
+  .conn{display:flex;justify-content:center;align-items:center;gap:14px;padding:10px 0;color:var(--mute);font-size:12px;font-family:var(--mono)}
+  .conn .arrow{width:2px;height:26px;background:linear-gradient(var(--line),var(--blue));position:relative}
+  .conn .arrow::after{content:"";position:absolute;bottom:-2px;left:-5px;border:6px solid transparent;border-top:8px solid var(--blue)}
+  .conn .arrow.up{background:linear-gradient(var(--blue),var(--line))}
+  .conn .arrow.up::after{top:-2px;bottom:auto;border-top:6px solid transparent;border-bottom:8px solid var(--blue)}
+  .conn span{background:var(--bg);padding:2px 8px;border:1px solid var(--line);border-radius:6px}
+  /* owner */
+  .l-owner{border-color:#3b4a5e}
+  .l-owner h2{color:var(--blue)}
+  .l-owner .boxes{grid-template-columns:repeat(auto-fit,minmax(170px,1fr))}
+  /* agents */
+  .l-agents h2{color:var(--violet)}
+  .agents{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+  @media(max-width:980px){.agents{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:640px){.agents{grid-template-columns:repeat(2,1fr)}}
+  .orch{background:#1f1a2e;border:1px solid var(--violet);border-radius:10px;padding:12px 16px;margin-bottom:10px;display:flex;gap:16px;align-items:center;flex-wrap:wrap}
+  .orch b{color:var(--violet)}
+  .orch .m{font-family:var(--mono);font-size:11px;color:var(--mute)}
+  .agent{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 10px;font-size:12px;text-align:center}
+  .agent b{display:block;font-size:13px;margin-bottom:2px}
+  .agent .m{font-family:var(--mono);font-size:10.5px;color:var(--mute);display:block}
+  .agent .st{display:inline-block;margin-top:6px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--violet)}
+  .brief{font-size:12px;color:var(--mute);margin-top:10px;font-style:italic}
+  /* supabase */
+  .l-db h2{color:var(--green)}
+  .db{display:grid;grid-template-columns:1.1fr 1fr;gap:12px}
+  @media(max-width:860px){.db{grid-template-columns:1fr}}
+  .tables{display:flex;flex-wrap:wrap;gap:6px}
+  .t{font-family:var(--mono);font-size:11px;padding:4px 8px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:var(--panel2)}
+  .t.new{border-color:var(--amber);color:#ffd98a}
+  .t.view{color:var(--cyan);border-style:dashed}
+  .guard{background:#102016;border:1px solid var(--green);border-radius:10px;padding:14px 16px}
+  .guard h3{font-size:12px;color:var(--green);letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}
+  .guard ul{list-style:none;font-size:12.5px;line-height:1.55}
+  .guard li{padding-left:16px;position:relative;color:var(--ink)}
+  .guard li::before{content:"⛔";position:absolute;left:0;top:0;font-size:10px;line-height:1.9}
+  .guard li.ok::before{content:"✓";color:var(--green);font-size:12px}
+  .guard li .m{color:var(--mute);font-family:var(--mono);font-size:11px}
+  .guard li.new{color:#ffd98a}
+  /* owner accounts */
+  .l-ext h2{color:var(--amber)}
+  .l-ext .boxes{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .yours{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber);border:1px solid var(--amber);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+  /* customers */
+  .l-cust{border-style:dashed}
+  .l-cust h2{color:var(--cyan)}
+  .never{margin-top:14px;background:#2a1416;border:1px solid var(--red);border-radius:10px;padding:12px 16px;font-size:13px;color:#ffb3ad}
+  .never b{color:var(--red)}
+
+  /* ---- lifecycle ---- */
+  .life{display:grid;grid-template-columns:repeat(8,1fr);gap:8px;position:relative}
+  @media(max-width:1000px){.life{grid-template-columns:repeat(4,1fr)}}
+  @media(max-width:600px){.life{grid-template-columns:repeat(2,1fr)}}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 12px;font-size:12px;position:relative;min-height:230px;display:flex;flex-direction:column}
+  .stage .n{font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .stage h3{font-size:15px;font-weight:700;margin:2px 0 4px}
+  .stage .who{color:var(--violet);font-size:11.5px;margin-bottom:8px}
+  .stage .out{color:var(--mute);line-height:1.45;flex:1}
+  .stage .out b{color:var(--ink);font-weight:600}
+  .stage .cap{margin-top:10px;font-family:var(--mono);font-size:11px;padding:5px 8px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:var(--mute)}
+  .stage .cap.amber{border-color:var(--amber);color:#ffd98a}
+  .gate{position:absolute;top:-10px;left:10px;right:10px;font-size:10px;letter-spacing:.06em;text-transform:uppercase;background:#2b2210;color:#ffd98a;border:1px solid var(--amber);border-radius:5px;padding:2px 7px;text-align:center;font-weight:600}
+  .gate.red{background:#2a1416;color:#ffb3ad;border-color:var(--red)}
+  .stage.s0{border-color:var(--blue)} .stage.s0 h3{color:var(--blue)}
+  .loopnote{margin-top:14px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+  .note{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--mute);line-height:1.5}
+  .note b{color:var(--ink)}
+
+  /* ---- money path ---- */
+  .money{display:grid;grid-template-columns:repeat(5,1fr);gap:0;align-items:stretch}
+  @media(max-width:900px){.money{grid-template-columns:1fr}}
+  .mstep{background:var(--panel);border:1px solid var(--line);padding:16px 16px;font-size:13px;position:relative}
+  .mstep:first-child{border-radius:12px 0 0 12px} .mstep:last-child{border-radius:0 12px 12px 0}
+  @media(max-width:900px){.mstep{border-radius:12px!important;margin-bottom:8px}}
+  .mstep .k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:6px}
+  .mstep b{display:block;font-size:14px;margin-bottom:4px}
+  .mstep p{color:var(--mute);font-size:12.5px;line-height:1.5}
+  .mstep .m{font-family:var(--mono);font-size:11px;color:var(--cyan);display:block;margin-top:8px}
+  .mstep.red b{color:var(--red)} .mstep.green b{color:var(--green)} .mstep.amber b{color:var(--amber)}
+  .mstep:not(:last-child)::after{content:"→";position:absolute;right:-9px;top:50%;transform:translateY(-50%);z-index:2;background:var(--bg);color:var(--mute);font-size:16px;line-height:1;padding:2px}
+  @media(max-width:900px){.mstep::after{display:none}}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .kpi .v{font-family:var(--mono);font-size:20px;font-weight:600}
+  .kpi .l{font-size:11.5px;color:var(--mute);margin-top:4px}
+  footer{margin-top:48px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--dim);line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>How the Autonomous Venture Engine works, end to end</h1>
+  <p class="sub">As built in <span class="mono">v0.1 "Reshape"</span>: one operator with an edge, eight Hyperagent agents, one Supabase project that is both shared memory and rules-based guardrail, and ventures that live entirely in the owner's own accounts. Every box below exists in the repo.</p>
+  <div class="legend">
+    <span><i style="background:var(--blue)"></i>Owner</span>
+    <span><i style="background:var(--violet)"></i>Hyperagent agents</span>
+    <span><i style="background:var(--green)"></i>Supabase memory + guardrails</span>
+    <span><i style="background:var(--amber)"></i>Owner's own accounts (assets)</span>
+    <span><i style="background:var(--cyan)"></i>Customers / public</span>
+    <span><i style="background:#ffd98a;border:1px solid var(--amber)"></i>New in v0.1</span>
+  </div>
+
+  <div class="label">1 · The system, top to bottom</div>
+  <div class="sys">
+
+    <section class="layer l-owner">
+      <h2>Owner · Command Center</h2>
+      <div class="who"><span class="mono">dashboard/index.html</span> · supabase-js + magic-link auth · RLS: owner sees only their rows</div>
+      <div class="boxes">
+        <div class="box hl"><b>Your edge</b>audience, domain, channels, assets, geography, hours<span class="m">owner_edge · unlocks discovery</span></div>
+        <div class="box"><b>Capital & policy</b>budget planned against, auto-approve limits, venture cap, max active, wedge, dogfood, min edge fit<span class="m">ledger.capital_in · policies</span></div>
+        <div class="box"><b>Approvals inbox</b>launch · kill · scale · spend above limit · publish ledger<span class="m">approvals · owner JWT only</span></div>
+        <div class="box"><b>Kill switch</b>every new spend rejected instantly<span class="m">owners.kill_switch</span></div>
+        <div class="box hl"><b>Venture assets</b>every repo, storefront, ad account — all marked <em>yours</em><span class="m">venture_assets</span></div>
+        <div class="box hl"><b>Public ledger</b>Treasurer drafts · only you publish<span class="m">public_ledger_snapshots → ledger.html</span></div>
+      </div>
+    </section>
+
+    <div class="conn"><div class="arrow"></div><span>owner reads reports · approves · sets limits</span><div class="arrow up"></div></div>
+
+    <section class="layer l-db">
+      <h2>Supabase · shared memory and the rules layer</h2>
+      <div class="who"><span class="mono">supabase/migrations/0001_ave_core.sql + 0002_reshape_operator_edge.sql</span> · agents reach it via <span class="mono">execute_sql</span> with no JWT, so they can only <em>ask</em></div>
+      <div class="db">
+        <div>
+          <div class="tables">
+            <span class="t">owners</span><span class="t">policies</span><span class="t new">owner_edge</span><span class="t">ventures</span><span class="t">opportunities</span><span class="t">experiments</span>
+            <span class="t">spend_requests</span><span class="t">ledger</span><span class="t">approvals</span><span class="t">decisions</span><span class="t">agent_runs</span><span class="t">metrics</span><span class="t">reports</span><span class="t">notifications</span>
+            <span class="t new">venture_assets</span><span class="t new">public_ledger_snapshots</span>
+            <span class="t view">v_portfolio</span><span class="t view">v_ventures</span><span class="t view new">v_cost_of_intelligence</span>
+          </div>
+          <p style="font-size:12.5px;color:var(--mute);margin-top:12px;line-height:1.55">Agents coordinate <b style="color:var(--ink)">only through these tables</b> — they never talk to each other. Every hand-off is a JSON packet validated against <span class="mono">protocol/*.schema.json</span> (OpportunityPacket → VentureProposal → ExperimentSpec/Result → BuildSpec → DistributionPlan → DecisionRecord → OwnerReport). <span class="mono">ledger</span> and <span class="mono">decisions</span> are immutable.</p>
+        </div>
+        <div class="guard">
+          <h3>Guardrails · Postgres triggers, no LLM in the loop</h3>
+          <ul>
+            <li>Spend status an agent writes is ignored — the trigger decides <span class="m">auto_approved / pending_owner / rejected</span></li>
+            <li>Expense needs an approved request with headroom; revenue counts only when <span class="m">verified + external_ref</span></li>
+            <li>Approve, policy, capital, kill switch: <span class="m">auth.uid()</span> = owner only</li>
+            <li>Launch / kill / scale need an approved <span class="m">approvals</span> row; max active ventures enforced</li>
+            <li class="new">No discovery until <span class="m">owner_edge</span> is complete</li>
+            <li class="new">Launch needs owner-controlled storefront/payment + repo/hosting in <span class="m">venture_assets</span></li>
+            <li class="new">Solution shape must be in the wedge; dogfood: $100 cap, stages $40/$20/$40</li>
+            <li class="new">Custody / investment language raises; only the owner publishes a ledger</li>
+            <li class="ok">47 / 47 tests green against embedded Postgres</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <div class="conn"><div class="arrow up"></div><span>agents read state · file requests · write packets, decisions, runs</span><div class="arrow"></div></div>
+
+    <section class="layer l-agents">
+      <h2>Hyperagent · the venture team</h2>
+      <div class="who">Named agents · each specialist is spawned per task with a full brief and cannot see the others · prompts in <span class="mono">agents/build/*.md</span></div>
+      <div class="orch"><div><b>AVE Orchestrator</b> · CEO · <span class="m">live mode, daily tick</span></div><div class="m">reads v_portfolio + v_ventures + approvals → decides the one next action per venture → briefs a specialist → writes OwnerReport. Never spends. Checks owner_edge first; runs the dogfood protocol while dogfood_mode is on.</div></div>
+      <div class="agents">
+        <div class="agent"><b>Scout</b><span class="m">OpportunityPacket + edge_fit</span><span class="st">discover</span></div>
+        <div class="agent"><b>Strategist</b><span class="m">VentureProposal · edge_fit_score · money_route</span><span class="st">evaluate</span></div>
+        <div class="agent"><b>Validator</b><span class="m">ExperimentSpec → Result</span><span class="st">validate</span></div>
+        <div class="agent"><b>Builder</b><span class="m">BuildSpec · ships to owner's repo & storefront · registers assets</span><span class="st">build</span></div>
+        <div class="agent"><b>Distributor</b><span class="m">DistributionPlan · owner channels first · official APIs</span><span class="st">distribute</span></div>
+        <div class="agent"><b>Treasurer</b><span class="m">reconcile · verify revenue · ledger snapshot</span><span class="st">measure</span></div>
+        <div class="agent"><b>Analyst</b><span class="m">DecisionRecord · learning log · cost of intelligence</span><span class="st">decide</span></div>
+      </div>
+      <p class="brief">Each run closes its <span class="mono">agent_runs</span> row with model, tokens and <span class="mono">cost_cents</span>, so intelligence cost sits beside cash in every report.</p>
+    </section>
+
+    <div class="conn"><div class="arrow"></div><span>Builder & Distributor act only inside the owner's accounts, via official APIs</span></div>
+
+    <section class="layer l-ext">
+      <h2>The owner's own accounts · where ventures actually live</h2>
+      <div class="who">Registered in <span class="mono">venture_assets</span> with <span class="mono">owner_controlled = true</span> (a CHECK constraint) · if the owner leaves, they keep everything</div>
+      <div class="boxes">
+        <div class="box"><b>GitHub <span class="yours">yours</span></b>one repo per venture<span class="m">kind: repo</span></div>
+        <div class="box"><b>Storefront <span class="yours">yours</span></b>Gumroad · Lemon Squeezy · Payhip · Paystack/Stripe links<span class="m">kind: storefront / payment_account</span></div>
+        <div class="box"><b>Hosting & domain <span class="yours">yours</span></b>free/low tier<span class="m">kind: hosting / domain</span></div>
+        <div class="box"><b>Ad account <span class="yours">yours</span></b>Meta / Google via official Marketing APIs<span class="m">kind: ad_account</span></div>
+        <div class="box"><b>Email & analytics <span class="yours">yours</span></b><span class="m">kind: email / analytics</span></div>
+      </div>
+    </section>
+
+    <div class="conn"><div class="arrow"></div><span>products, offers, support · payments land in the owner's provider</span><div class="arrow up"></div></div>
+
+    <section class="layer l-cust">
+      <h2>Customers · and the public</h2>
+      <div class="boxes" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+        <div class="box"><b>Buyers</b>reached first through the owner's existing audience and channels, then small paid tranches</div>
+        <div class="box hl"><b>Anyone with the link</b>reads published ledger snapshots — actuals only, kills included<span class="m">dashboard/ledger.html?s=&lt;slug&gt;</span></div>
+      </div>
+      <div class="never"><b>Never in the path:</b> AVE holds no money, owns no asset, takes no share of venture revenue and never promises returns. The platform is paid a flat subscription outside these ledgers (<span class="mono">docs/BOUNDARIES.md</span>).</div>
+    </section>
+  </div>
+
+  <div class="label">2 · The lifecycle, one venture at a time</div>
+  <div class="life">
+    <div class="stage s0"><span class="n">0</span><h3>Edge</h3><div class="who">Owner</div><div class="out">Fill <b>owner_edge</b> in the dashboard. Trigger refuses discovery until <b>completed_at</b> is set.</div><div class="cap">$0</div></div>
+    <div class="stage"><span class="n">1</span><h3>Discover</h3><div class="who">Scout</div><div class="out">3–5 <b>OpportunityPackets</b>, each with evidence URLs and an <b>edge_fit</b> block: which part of the owner's edge it uses, how the first ten customers are reached.</div><div class="cap">$0</div></div>
+    <div class="stage"><div class="gate">edge_fit ≥ policy min</div><span class="n">2</span><h3>Evaluate</h3><div class="who">Strategist</div><div class="out"><b>VentureProposal</b>: Promise + CTA, price, unit economics incl. intelligence cost, <b>money_route</b> = owner's storefront → validate / park / reject.</div><div class="cap">$0</div></div>
+    <div class="stage"><div class="gate">shape in wedge · venture row created</div><span class="n">3</span><h3>Validate</h3><div class="who">Validator</div><div class="out"><b>ExperimentSpec</b> with a numeric threshold set before launch → cheapest test that can fail, owner's audience first → <b>ExperimentResult</b>.</div><div class="cap amber">≤15% B · dogfood $40</div></div>
+    <div class="stage"><div class="gate">result = advance (conf ≥ 0.6)</div><span class="n">4</span><h3>Build</h3><div class="who">Builder</div><div class="out"><b>BuildSpec</b> → smallest product in the owner's repo + storefront; <b>venture_assets</b> registered; acceptance tests; hand-off note.</div><div class="cap amber">≤25% B · dogfood $20</div></div>
+    <div class="stage"><div class="gate red">owner "launch" approval + assets registered</div><span class="n">5</span><h3>Distribute</h3><div class="who">Distributor</div><div class="out"><b>DistributionPlan</b>: owner channels first, then paid tranches on the owner's ad account via official API; funnel metrics per channel.</div><div class="cap amber">≤40% B / 30d · dogfood $40</div></div>
+    <div class="stage"><span class="n">6</span><h3>Measure</h3><div class="who">Treasurer · Analyst</div><div class="out">Reconcile ledger vs owner's provider; verify revenue by payment ref; CAC, conversion, <b>intelligence cost</b>; draft <b>ledger snapshot</b>.</div><div class="cap">$0</div></div>
+    <div class="stage"><div class="gate red">scale / kill need owner approval</div><span class="n">7</span><h3>Decide → Repeat</h3><div class="who">Orchestrator (Analyst recommends)</div><div class="out"><b>DecisionRecord</b>: scale · iterate · maintain · pause · kill. Learning log updated; Scout re-briefed. Owner publishes the snapshot.</div><div class="cap">one iterate per stage, then kill</div></div>
+  </div>
+  <div class="loopnote">
+    <div class="note"><b>Dogfood mode (default on).</b> Every venture is a $100 proof-of-loop run with a 48-hour target from discover to a published ledger. A clean kill with a snapshot is a pass; the test is of the engine, not the venture.</div>
+    <div class="note"><b>Money arithmetic.</b> available = capital_in − capital_out − expenses + verified revenue − refunds − reserved. Reserved counts the moment a request is approved, so two agents can't both get the last $20.</div>
+    <div class="note"><b>What the owner sees.</b> One OwnerReport per tick (headline, portfolio incl. intelligence cost, per-venture status + next, needs-you list, fixed disclaimer). A notification only when something needs them.</div>
+  </div>
+
+  <div class="label">3 · The money and asset path</div>
+  <div class="money">
+    <div class="mstep"><div class="k">Owner</div><b>Plans a budget</b><p>Adds <span class="mono">capital_in</span> to the ledger. The money itself stays in the owner's bank.</p><span class="m">ledger · owner JWT only</span></div>
+    <div class="mstep amber"><div class="k">Agent</div><b>Files a spend request</b><p>Category, amount, purpose, venture. Custody language raises; stage caps apply in dogfood.</p><span class="m">spend_requests → trigger decides</span></div>
+    <div class="mstep green"><div class="k">Database</div><b>Adjudicates</b><p>auto_approved ≤ $25 and under daily/venture limits · pending_owner above · rejected on policy, keyword, kill switch or capital.</p><span class="m">trg_adjudicate_spend</span></div>
+    <div class="mstep"><div class="k">Owner's accounts</div><b>Money moves — outside AVE</b><p>Ads on the owner's ad account, tools on the owner's card, sales into the owner's storefront.</p><span class="m">expense needs approved request · revenue needs external_ref</span></div>
+    <div class="mstep red"><div class="k">Treasurer → public</div><b>Reconciled, then published</b><p>Ledger vs provider statements; snapshot drafted; only the owner clicks Publish.</p><span class="m">fn_build_ledger_snapshot · ledger.html</span></div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="v">$25 / $100</div><div class="l">agent auto-approve per spend / per day (default)</div></div>
+    <div class="kpi"><div class="v">$500 → $100</div><div class="l">venture cap · dogfood cap</div></div>
+    <div class="kpi"><div class="v">2</div><div class="l">max active ventures (default)</div></div>
+    <div class="kpi"><div class="v">0.60</div><div class="l">min edge-fit score to proceed</div></div>
+    <div class="kpi"><div class="v">8 / 8</div><div class="l">agents · protocol packets</div></div>
+    <div class="kpi"><div class="v">47</div><div class="l">guardrail tests passing</div></div>
+  </div>
+
+  <footer>Source of truth: the v0.1 codebase (README, docs/ARCHITECTURE.md, docs/LIFECYCLE.md, docs/DOGFOOD_RUN.md, docs/BOUNDARIES.md, migrations 0001–0002, protocol schemas, agents/build). Not yet live: migrations are not applied to Supabase, the GitHub repo is not created, and the eight saved agents still hold the v0 prompts.</footer>
+</div>
+</body>
+</html>

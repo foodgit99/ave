@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/BuildSpec.schema.json",
+  "title": "BuildSpec",
+  "description": "Builder's contract with the Orchestrator. If it is not in the user stories it is not built.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "venture_id",
+    "mvp_statement",
+    "user_stories",
+    "out_of_scope",
+    "stack",
+    "acceptance_tests",
+    "estimated_build_days",
+    "assets"
+  ],
+  "properties": {
+    "venture_id": {
+      "type": "string",
+      "description": ""
+    },
+    "mvp_statement": {
+      "type": "string",
+      "description": "The smallest thing that delivers the promise"
+    },
+    "user_stories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Max 7 for an MVP"
+    },
+    "out_of_scope": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "stack": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "Payments, auth, email, analytics"
+    },
+    "data_model": {
+      "type": "string",
+      "description": ""
+    },
+    "acceptance_tests": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": ""
+    },
+    "estimated_build_days": {
+      "type": "integer",
+      "description": ""
+    },
+    "running_cost_cents_per_month": {
+      "type": "integer",
+      "description": ""
+    },
+    "repo": {
+      "type": "string",
+      "description": "In the owner's GitHub"
+    },
+    "deploy_target": {
+      "type": "string",
+      "description": "In the owner's hosting account"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "provider",
+          "url_or_id",
+          "owner_controlled"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "repo",
+              "domain",
+              "storefront",
+              "payment_account",
+              "ad_account",
+              "hosting",
+              "email",
+              "analytics",
+              "other"
+            ]
+          },
+          "provider": {
+            "type": "string",
+            "description": ""
+          },
+          "url_or_id": {
+            "type": "string",
+            "description": ""
+          },
+          "owner_controlled": {
+            "type": "boolean",
+            "const": true,
+            "description": "Always true: AVE never holds an asset"
+          }
+        }
+      },
+      "description": "Every asset the venture will use; all owner-controlled; registered in venture_assets before hand-off"
+    }
+  }
+}

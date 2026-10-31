@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AVE · Public ledger</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+  :root{--bg:#0d1117;--panel:#161b22;--line:#262d37;--ink:#e6edf3;--mute:#8b98a8;--green:#3fb950;--amber:#d29922;--red:#f85149;--mono:'IBM Plex Mono',monospace}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 'IBM Plex Sans',system-ui,sans-serif}
+  main{max-width:960px;margin:0 auto;padding:40px 28px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--mute);margin-bottom:24px}
+  .disc{background:#1d2a3d;border:1px solid #2f81f7;color:#b6d4ff;padding:10px 14px;border-radius:8px;margin:0 0 22px;font-size:13px}
+  .kpis{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:22px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+  .kpi .v{font:500 22px/1.1 var(--mono)} .kpi .l{color:var(--mute);font-size:12px;margin-top:6px}
+  .good{color:var(--green)} .bad{color:var(--red)}
+  h2{font-size:15px;margin:0 0 4px} h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mute);margin:14px 0 8px;font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top} tr:last-child td{border-bottom:0}
+  .num{font-family:var(--mono);text-align:right;white-space:nowrap}
+  .tag{display:inline-block;padding:2px 8px;border-radius:999px;font:500 11px var(--mono);background:#21262d}
+  .muted{color:var(--mute)} .small{font-size:12px}
+  .setup{max-width:460px;margin:60px auto}
+  input{font:inherit;background:#0d1117;border:1px solid var(--line);color:var(--ink);padding:9px 11px;border-radius:7px;width:100%;margin-top:8px}
+  button{font:inherit;border:1px solid var(--line);background:#21262d;color:var(--ink);padding:6px 12px;border-radius:7px;cursor:pointer;margin-top:10px}
+  footer{color:var(--mute);font-size:12px;margin-top:30px;border-top:1px solid var(--line);padding-top:14px}
+</style>
+</head>
+<body>
+<main id="main">
+  <div class="setup card" id="setup">
+    <h2>AVE public ledger</h2>
+    <p class="muted small">This page reads only snapshots an owner has chosen to publish. Enter the project URL and anon key once (the page remembers them), then open a link of the form <code>ledger.html?s=&lt;slug&gt;&amp;o=&lt;owner id&gt;</code>.</p>
+    <input id="url" placeholder="https://xxxx.supabase.co"><input id="anon" placeholder="anon key">
+    <button onclick="save()">Save</button>
+  </div>
+  <div id="view" style="display:none"></div>
+</main>
+<script>
+const $ = s => document.querySelector(s);
+const q = new URLSearchParams(location.search);
+const cfg = { url: localStorage.ave_url || q.get('u'), anon: localStorage.ave_anon || q.get('k') };
+const money = (c, cur='USD') => (c==null?'—':new Intl.NumberFormat('en',{style:'currency',currency:cur,maximumFractionDigits:2}).format(c/100));
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const when = t => new Date(t).toLocaleString();
+function save(){ localStorage.ave_url=$('#url').value.trim(); localStorage.ave_anon=$('#anon').value.trim(); location.reload(); }
+if (cfg.url && cfg.anon && q.get('s')) render(); else if (cfg.url) { $('#url').value=cfg.url; $('#anon').value=cfg.anon||''; }
+
+async function render(){
+  const sb = supabase.createClient(cfg.url, cfg.anon);
+  let qy = sb.from('public_ledger_snapshots').select('*').eq('slug', q.get('s')).eq('published', true);
+  if (q.get('o')) qy = qy.eq('owner_id', q.get('o'));
+  const { data, error } = await qy.order('created_at', { ascending:false }).limit(1).maybeSingle();
+  $('#setup').style.display='none'; $('#view').style.display='block';
+  if (error || !data) { $('#view').innerHTML = `<div class="card">No published snapshot found for <code>${esc(q.get('s'))}</code>. ${error?esc(error.message):''}</div>`; return; }
+  const S = data.snapshot || {}; const P = S.portfolio || {}; const cur = P.currency || 'USD';
+  const intel = (S.ventures||[]).reduce((n,v)=>n+(+v.intelligence_cost_cents||0),0);
+  const net = (P.verified_revenue_cents||0) - (P.expense_cents||0) - intel;
+  $('#view').innerHTML = `
+    <h1>${esc(data.title)}</h1>
+    <div class="sub">Published ${when(data.created_at)} · generated ${S.generated_at?when(S.generated_at):''} · snapshot <code>${esc(data.slug)}</code></div>
+    <div class="disc">${esc(S.disclaimer||'Actuals only. Nothing here is a forecast or a guarantee.')} The owner's money never left the owner's accounts; this is a record, not a wallet. AVE takes no share of venture revenue.</div>
+    <div class="kpis">
+      <div class="card kpi"><div class="v">${money(P.capital_in_cents,cur)}</div><div class="l">Capital planned against</div></div>
+      <div class="card kpi"><div class="v">${money(P.expense_cents,cur)}</div><div class="l">Cash spent</div></div>
+      <div class="card kpi"><div class="v">${money(intel,cur)}</div><div class="l">Intelligence cost (agent runs)</div></div>
+      <div class="card kpi"><div class="v good">${money(P.verified_revenue_cents,cur)}</div><div class="l">Verified revenue</div></div>
+      <div class="card kpi"><div class="v ${net>=0?'good':'bad'}">${money(net,cur)}</div><div class="l">Net, all-in</div></div>
+    </div>
+    ${(S.ventures||[]).map(v => `<div class="card">
+      <h2>${esc(v.name)} <span class="tag">${esc(v.stage)}</span> ${v.dogfood?'<span class="tag" style="color:var(--amber)">dogfood</span>':''} <span class="tag">${esc(v.solution_shape||'')}</span></h2>
+      <div class="small muted">Budget ${money(v.budget_cents,cur)} · spent ${money(v.spent_cents,cur)} · intelligence ${money(v.intelligence_cost_cents||0,cur)} · verified revenue <span class="good">${money(v.revenue_cents,cur)}</span></div>
+      <h3>Ledger</h3>${(v.ledger||[]).length?`<table>${v.ledger.map(l=>`<tr><td class="small muted" style="white-space:nowrap">${when(l.at)}</td><td><span class="tag">${esc(l.kind)}</span></td><td>${esc(l.description)}${l.kind==='revenue'&&!l.verified?' <span class="small muted">(unverified)</span>':''}</td><td class="num ${['revenue','refund'].includes(l.kind)?'good':''}">${['revenue','refund'].includes(l.kind)?'+':'−'}${money(l.amount_cents,cur)}</td></tr>`).join('')}</table>`:'<div class="small muted">No money moved.</div>'}
+      <h3>Decisions</h3>${(v.decisions||[]).length?`<table>${v.decisions.map(d=>`<tr><td class="small muted" style="white-space:nowrap">${when(d.at)}<br>${esc(d.agent)}</td><td><div>${esc(d.decision)}</div><div class="small muted">${esc(d.rationale)}</div></td></tr>`).join('')}</table>`:'<div class="small muted">No decisions logged.</div>'}
+    </div>`).join('')}
+    <footer>Generated by the Autonomous Venture Engine and published by its owner. Every row above is an actual, including the ones that lost money. Verified revenue requires a payment reference in the owner's own payment provider.</footer>`;
+}
+</script>
+</body>
+</html>

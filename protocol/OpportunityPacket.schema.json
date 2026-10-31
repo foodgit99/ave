@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ave.schemas/OpportunityPacket.schema.json",
+  "title": "OpportunityPacket",
+  "description": "Output of the Scout. One real problem with evidence, reachable through the owner's edge; never a business idea without a customer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "title",
+    "problem",
+    "target_customer",
+    "evidence",
+    "assumptions",
+    "edge_fit",
+    "proposed_solution_shape",
+    "confidence"
+  ],
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "problem": {
+      "type": "string",
+      "description": "The specific pain, in the customer's words"
+    },
+    "target_customer": {
+      "type": "string",
+      "description": "Who exactly; role, context, where they gather online"
+    },
+    "current_alternatives": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "description": ""
+      },
+      "description": "What they do today and what it costs them"
+    },
+    "why_now": {
+      "type": "string",
+      "description": "Trend, policy, tech or behaviour shift making this timely"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "source_url",
+          "strength"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string",
+            "description": ""
+          },
+          "source_url": {
+            "type": "string",
+            "description": "Where it was observed; 'interview' for primary research"
+          },
+          "strength": {
+            "type": "string",
+            "enum": [
+              "weak",
+              "moderate",
+              "strong"
+            ]
+          },
+          "date": {
+            "type": "string",
+            "description": "ISO date observed"
+          }
+        }
+      },
+      "description": ""
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assumption",
+          "risk_if_wrong",
+          "how_to_test"
+        ],
+        "properties": {
+          "assumption": {
+            "type": "string",
+            "description": ""
+          },
+          "risk_if_wrong": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "fatal"
+            ]
+          },
+          "how_to_test": {
+            "type": "string",
+            "description": ""
+          }
+        }
+      },
+      "description": ""
+    },
+    "edge_fit": {
+      "type": "object",
+      "required": [
+        "uses",
+        "route_to_first_ten",
+        "score"
+      ],
+      "description": "How this uses the owner's edge (owner_edge). Generic ideas score low and are dropped.",
+      "properties": {
+        "uses": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "audience",
+              "domain",
+              "channel",
+              "asset",
+              "geography",
+              "none"
+            ]
+          },
+          "description": ""
+        },
+        "route_to_first_ten": {
+          "type": "string",
+          "description": "How the first ten customers are reached through the owner's existing audience/channels"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "why": {
+          "type": "string",
+          "description": ""
+        }
+      }
+    },
+    "proposed_solution_shape": {
+      "type": "string",
+      "enum": [
+        "digital_product",
+        "ai_service",
+        "productized_service",
+        "automation_tool",
+        "micro_saas",
+        "marketplace_lite"
+      ],
+      "description": "Must be in policies.allowed_solution_shapes; digital_product first in v0.1"
+    },
+    "estimated_willingness_to_pay_usd": {
+      "type": "number",
+      "description": "Monthly or one-off; state which in notes"
+    },
+    "notes": {
+      "type": "string",
+      "description": ""
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "0-1 confidence"
+    },
+    "scout_agent": {
+      "type": "string",
+      "description": ""
+    },
+    "discovered_at": {
+      "type": "string",
+      "description": "ISO timestamp"
+    }
+  }
+}
