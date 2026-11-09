@@ -17,7 +17,8 @@ except ImportError:
         c = psycopg.connect(uri); c.autocommit = True; return c
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MIGRATIONS = [(ROOT / f).read_text() for f in ("supabase/migrations/0001_ave_core.sql", "supabase/migrations/0002_reshape_operator_edge.sql")]
+MIGRATIONS = [(ROOT / f).read_text() for f in ("supabase/migrations/0001_ave_core.sql", "supabase/migrations/0002_reshape_operator_edge.sql",
+                                                    "supabase/migrations/0003_autonomy_levels.sql")]
 
 OWNER = uuid.UUID("11111111-1111-1111-1111-111111111111")
 STRANGER = uuid.UUID("22222222-2222-2222-2222-222222222222")
@@ -44,7 +45,7 @@ def main():
     con = connect(db.get_uri()); cur = con.cursor()
     cur.execute("drop schema public cascade; create schema public;")
     for m in MIGRATIONS: cur.execute(m)
-    print("migrations applied (0001 core, 0002 reshape)")
+    print("migrations applied (0001 core, 0002 reshape, 0003 autonomy levels)")
 
     # ---- bootstrap owner ($500 capital, default policy) -------------------
     as_owner(cur)
@@ -209,7 +210,50 @@ def main():
     check("owner publishes snapshot", True)
     as_agent(cur)
 
-    print("\n7. kill switch")
+    print("\n7. autonomy levels (earned, preset-applied, Level 5 refused)")
+    cur.execute("select autonomy_level, level_custom from policies where owner_id=%s", (str(OWNER),))
+    lvl, custom = cur.fetchone()
+    check("default level is 2, marked custom after hand-tuning limits", lvl == 2 and custom is True, f"{lvl} {custom}")
+    err = expect_error(cur, "update policies set autonomy_level=3 where owner_id=%s", (str(OWNER),))
+    check("agent cannot change the autonomy level", err and "authenticated owner" in err, err)
+    as_owner(cur)
+    err = expect_error(cur, "update policies set autonomy_level=5 where owner_id=%s", (str(OWNER),))
+    check("Level 5 is not offered", err and "not offered" in err, err)
+    err = expect_error(cur, "update policies set autonomy_level=3 where owner_id=%s", (str(OWNER),))
+    check("Level 3 refused until the ledger earns it", err and "Level 3 is earned" in err and "have 0" in err, err)
+    cur.execute("update policies set autonomy_level=1 where owner_id=%s returning auto_approve_limit_cents, daily_spend_limit_cents, dogfood_mode, level_custom", (str(OWNER),))
+    a, d, df, custom = cur.fetchone()
+    check("Level 1 preset applied (agents may spend nothing unasked)", a == 0 and d == 0 and df is True and custom is False, f"{a} {d} {df} {custom}")
+    as_agent(cur)
+    cur.execute("update ventures set stage='build' where id=%s", (VD,))
+    _, st, why = file_spend(100, venture=VD, purpose='domain for product page')
+    check("at Level 1 even a $1 spend waits for the owner", st == 'pending_owner', why)
+    as_owner(cur)
+    cur.execute("update policies set autonomy_level=2 where owner_id=%s returning auto_approve_limit_cents, max_active_ventures", (str(OWNER),))
+    check("Level 2 preset restores the default limits", cur.fetchone() == (2500, 2))
+    cur.execute("select decision from decisions where owner_id=%s and agent='owner' order by created_at desc limit 1", (str(OWNER),))
+    check("level change is logged as a decision", 'autonomy level 1 → 2' in cur.fetchone()[0])
+    # earn Level 3: three completed ventures + one published ledger (published in section 6)
+    for i in range(3):
+        cur.execute("insert into ventures(owner_id,name,slug,budget_cents) values (%s,%s,%s,10000) returning id", (str(OWNER), f'Proof {i}', f'proof-{i}'))
+        cur.execute("update ventures set stage='killed' where id=%s", (cur.fetchone()[0],))
+    cur.execute("select completed_ventures, published_ledgers, max_level_earned from fn_level_evidence(%s)", (str(OWNER),))
+    check("evidence: 3 completed, 1 published → Level 3 earned", cur.fetchone() == (3, 1, 3))
+    cur.execute("update policies set autonomy_level=3 where owner_id=%s returning dogfood_mode, auto_approve_limit_cents, require_owner_for::text", (str(OWNER),))
+    df, a, req = cur.fetchone()
+    check("Level 3 granted: proof mode off, owner still gates launch and kill", df is False and a == 4000 and 'launch' in req and 'kill' in req, f"{df} {a} {req}")
+    err = expect_error(cur, "update policies set autonomy_level=4 where owner_id=%s", (str(OWNER),))
+    check("Level 4 refused: needs 10 completed and a venture that beat its all-in cost", err and "Level 4 is earned" in err, err)
+    cur.execute("update policies set auto_approve_limit_cents=3000 where owner_id=%s returning autonomy_level, level_custom", (str(OWNER),))
+    check("tightening a limit keeps the level, marks it custom", cur.fetchone() == (3, True))
+    cur.execute("select fn_build_ledger_snapshot(%s)->'autonomy_level'", (str(OWNER),))
+    al = cur.fetchone()[0]
+    check("ledger snapshot states the level it was run at", al['level'] == 3 and al['name'] == 'Conditional' and al['custom'] is True, al)
+    cur.execute("update policies set autonomy_level=2 where owner_id=%s", (str(OWNER),))
+    check("stepping down is always allowed", True)
+    as_agent(cur)
+
+    print("\n8. kill switch")
     as_owner(cur); cur.execute("update owners set kill_switch=true where id=%s", (str(OWNER),)); as_agent(cur)
     _, st, why = file_spend(100)
     check("kill switch rejects all new spend", st == 'rejected' and 'kill switch' in why, why)

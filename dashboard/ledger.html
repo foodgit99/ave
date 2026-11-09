@@ -62,6 +62,7 @@ async function render(){
   const net = (P.verified_revenue_cents||0) - (P.expense_cents||0) - intel;
   $('#view').innerHTML = `
     <h1>${esc(data.title)}</h1>
+    ${S.autonomy_level?`<div style="margin:8px 0 10px"><span class="tag" style="color:var(--green);border:1px solid var(--green)">Run at Level ${S.autonomy_level.level} · ${esc(S.autonomy_level.name)}${S.autonomy_level.custom?' · fine-tuned':''}</span> <span class="small muted">Autonomous Venturing has five levels; Level 5 is not offered.</span></div>`:''}
     <div class="sub">Published ${when(data.created_at)} · generated ${S.generated_at?when(S.generated_at):''} · snapshot <code>${esc(data.slug)}</code></div>
     <div class="disc">${esc(S.disclaimer||'Actuals only. Nothing here is a forecast or a guarantee.')} The owner's money never left the owner's accounts; this is a record, not a wallet. AVE takes no share of venture revenue.</div>
     <div class="kpis">

@@ -78,6 +78,15 @@ reserved  = Σ spend_requests in (auto_approved, approved) and not expired
 Reserved money is counted against capital the moment a request is approved, so two agents cannot
 each be approved for the last $20. Requests expire after 7 days; the Treasurer sweeps them.
 
+## Autonomy is a level, and the level is a row
+
+`policies.autonomy_level` (1 Assisted, 2 Supervised, 3 Conditional, 4 High) decides what agents may
+do without asking. A trigger applies the level's preset to the existing policy fields, so the level
+is not a second control system; it is a named, auditable way of setting the first one. Graduation is
+checked against the owner's own ledger (`fn_level_evidence`): Level 3 needs 3 completed ventures and
+a published snapshot; Level 4 needs 10, a published snapshot and one venture whose verified revenue
+beat its cash plus intelligence cost. Level 5 is refused by constraint. See `docs/FIVE_LEVELS.md`.
+
 ## Proof before customers
 
 `policies.dogfood_mode` (default on) caps every venture at $100 with per-stage caps and flags it

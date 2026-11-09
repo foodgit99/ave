@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.2 — "Autonomous Venturing" (9 Nov 2026)
+
+Names the category and makes its defining idea, levels of autonomy, a real setting.
+
+* **Migration 0003:** `policies.autonomy_level` (1 to 4, default 2), `level_custom`, `level_changed_at`;
+  `fn_level_name`, `fn_level_evidence`, `trg_policy_level`. Setting a level applies its preset; moving
+  up to Level 3 (3 completed ventures, 1 published ledger) or Level 4 (10 completed, 1 published, 1
+  venture that beat its all-in cost) is refused until earned; Level 5 is refused always. The level is
+  stamped on ledger snapshots.
+* **Dashboard:** the policy card is now "Autonomy level · who is at the wheel" with a level selector,
+  graduation progress and level-language labels; "Kill switch" reads "Emergency brake"; "Dogfood mode"
+  reads "Proof mode". Schema names are unchanged. The public ledger page shows the level a run used.
+* **Docs:** `docs/FIVE_LEVELS.md` (manifesto and standard), `docs/POSITIONING.md` rewritten around
+  Autonomous Venturing.
+* **Agents:** COMMON.md and the Orchestrator read and report the level and never lobby for a higher one.
+
+Tests: 61/61 (47 + 14 level rules).
+
 ## v0.1 — "Reshape" (31 Oct 2026)
 
 Implements the Roast My Idea council verdict (RESHAPE, medium confidence). Four decisions, encoded
